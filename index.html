@@ -128,16 +128,17 @@
       });
     }
 
-    function populateSelect(headers) {
-      const select = document.getElementById('variableSelect');
-      select.innerHTML = '<option disabled selected>Seleccione una variable</option>';
-      headers.filter(h => h.toLowerCase() !== 'timestamp').forEach(h => {
-        const option = document.createElement('option');
-        option.value = h;
-        option.textContent = h;
-        select.appendChild(option);
-      });
-    }
+function populateSelect(headers) {
+  const exclude = ['Fecha', 'Hora', 'Marca temporal'];
+  const select = document.getElementById('variableSelect');
+  select.innerHTML = '<option disabled selected>Seleccione una variable</option>';
+  headers.filter(h => !exclude.includes(h.trim().toLowerCase())).forEach(h => {
+    const option = document.createElement('option');
+    option.value = h;
+    option.textContent = h;
+    select.appendChild(option);
+  });
+}
 
     function updateChart() {
       const variable = document.getElementById('variableSelect').value;
@@ -181,7 +182,7 @@
             }
           },
           scales: {
-            x: { title: { display: true, text: 'Tiempo' } },
+            x: { title: { display: true, text: 'Fecha' } },
             y: { title: { display: true, text: variable } }
           }
         }
