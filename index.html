@@ -1,169 +1,172 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Datos del prototipo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualización de datos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f9fafb;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 2rem;
-      color: #111827;
+      padding: 0;
+      background: #f7f9fc;
+      color: #333;
     }
-
-    h1 {
+    header {
+      background-color: #4a90e2;
+      padding: 1rem;
       text-align: center;
-      font-size: 2rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
+      color: white;
     }
-
-    #refreshBtn {
-      display: block;
-      margin: 0 auto 2rem auto;
-      background-color: #3b82f6;
+    main {
+      padding: 2rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+    button, select {
+      background-color: #4a90e2;
       color: white;
       border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
+      padding: 0.5rem 1rem;
       font-size: 1rem;
+      margin-right: 1rem;
+      border-radius: 5px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
     }
-
-    #refreshBtn:hover {
-      background-color: #2563eb;
+    select {
+      background-color: #f0f0f0;
+      color: #333;
+      border: 1px solid #ccc;
     }
-
-    #loading {
-      text-align: center;
-      font-size: 1rem;
-      color: #6b7280;
-      margin-bottom: 1rem;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      background-color: white;
-      border-radius: 8px;
-      overflow: hidden;
+      margin-top: 2rem;
     }
-
     th, td {
-      padding: 1rem;
+      border: 1px solid #ccc;
+      padding: 0.5rem;
       text-align: left;
     }
-
     th {
-      background-color: #f3f4f6;
-      font-weight: 600;
-      border-bottom: 1px solid #e5e7eb;
+      background-color: #e9f1fb;
     }
-
-    tr:nth-child(even) td {
-      background-color: #f9fafb;
-    }
-
-    tr:hover td {
-      background-color: #e0f2fe;
-    }
-
-    @media (max-width: 768px) {
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-
-      thead {
-        display: none;
-      }
-
-      tr {
-        margin-bottom: 1rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      }
-
-      td {
-        padding: 0.75rem;
-        position: relative;
-        padding-left: 50%;
-      }
-
-      td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 1rem;
-        top: 0.75rem;
-        font-weight: 600;
-        color: #6b7280;
-      }
+    canvas {
+      margin-top: 2rem;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>📊 Datos del manglar (prototipo)</h1>
-  <button id="refreshBtn">🔄 Actualizar datos</button>
-  <div id="loading">Cargando datos…</div>
-  <table id="dataTable" style="display: none;"></table>
+  <header>
+    <h1>Visualización de datos del Prototipo</h1>
+  </header>
+  <main>
+    <button onclick="fetchData()">Actualizar datos</button>
+    <label for="variableSelect">Selecciona una variable:</label>
+    <select id="variableSelect" onchange="updateChart()">
+      <option disabled selected>Seleccione una variable</option>
+    </select>
+    <canvas id="chart" width="800" height="400"></canvas>
+    <table id="dataTable"></table>
+  </main>
 
   <script>
-    const sheetCSVUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZcYp6CmGzPbeIfLHtGbQ4V2A1sLbSsLJZIts_ksK9cy51xrhpeLyx7X9Q2mHYbfvAp8Fhr3186Y9k/pub?output=csv';
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZcYp6CmGzPbeIfLHtGbQ4V2A1sLbSsLJZIts_ksK9cy51xrhpeLyx7X9Q2mHYbfvAp8Fhr3186Y9k/pub?output=csv';
+    let rawData = [];
+    let chart;
 
-    async function fetchAndDisplayData() {
-      const table = document.getElementById("dataTable");
-      const loading = document.getElementById("loading");
-
-      loading.innerText = "Cargando datos…";
-      table.style.display = "none";
-
+    async function fetchData() {
       try {
-        const res = await fetch(sheetCSVUrl);
-        const csvText = await res.text();
-        const rows = csvText.trim().split('\n').map(row => row.split(','));
-
-        table.innerHTML = "";
+        const res = await fetch(CSV_URL);
+        const text = await res.text();
+        const rows = text.trim().split('\n').map(row => row.split(','));
         const headers = rows[0];
+        rawData = rows.slice(1).map(r => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
 
-        const thead = document.createElement("thead");
-        const headerRow = document.createElement("tr");
-        headers.forEach(header => {
-          const th = document.createElement("th");
-          th.innerText = header;
-          headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        const tbody = document.createElement("tbody");
-        rows.slice(1).forEach(dataRow => {
-          const tr = document.createElement("tr");
-          dataRow.forEach((cell, i) => {
-            const td = document.createElement("td");
-            td.innerText = cell;
-            td.setAttribute('data-label', headers[i]);
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-
-        loading.innerText = "Datos actualizados ✅";
-        table.style.display = "";
+        buildTable(headers, rawData);
+        populateSelect(headers);
+        updateChart();
       } catch (err) {
-        loading.innerText = "❌ Error cargando los datos.";
-        console.error("Error:", err);
+        alert('Error cargando los datos.');
+        console.error(err);
       }
     }
 
-    document.getElementById("refreshBtn").addEventListener("click", fetchAndDisplayData);
+    function buildTable(headers, data) {
+      const table = document.getElementById('dataTable');
+      table.innerHTML = '';
+      const headerRow = table.insertRow();
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+      });
+      data.forEach(row => {
+        const tr = table.insertRow();
+        headers.forEach(h => {
+          const td = tr.insertCell();
+          td.textContent = row[h];
+        });
+      });
+    }
 
-    // Primera carga al abrir
-    fetchAndDisplayData();
+    function populateSelect(headers) {
+      const select = document.getElementById('variableSelect');
+      select.innerHTML = '<option disabled selected>Seleccione una variable</option>';
+      headers.filter(h => h.toLowerCase() !== 'timestamp').forEach(h => {
+        const option = document.createElement('option');
+        option.value = h;
+        option.textContent = h;
+        select.appendChild(option);
+      });
+    }
+
+    function updateChart() {
+      const variable = document.getElementById('variableSelect').value;
+      if (!variable || rawData.length === 0) return;
+
+      const labels = rawData.map(r => r.timestamp);
+      const values = rawData.map(r => parseFloat(r[variable]) || 0);
+
+      if (chart) chart.destroy();
+
+      const ctx = document.getElementById('chart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: variable,
+            data: values,
+            borderColor: '#4a90e2',
+            backgroundColor: 'rgba(74,144,226,0.2)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 4,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Tiempo' } },
+            y: { title: { display: true, text: variable } }
+          }
+        }
+      });
+    }
+
+    // Cargar datos al inicio
+    fetchData();
   </script>
 </body>
 </html>
