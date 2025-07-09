@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Visualización de datos</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,14 +26,21 @@
       margin: auto;
     }
     button, select {
-      background-color: #4a90e2;
-      color: white;
       border: none;
       padding: 0.5rem 1rem;
       font-size: 1rem;
-      margin-right: 1rem;
+      margin: 1rem 0;
       border-radius: 5px;
       cursor: pointer;
+    }
+    button {
+      background-color: #4a90e2;
+      color: white;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    button.loading {
+      background-color: #357ABD;
+      transform: scale(0.95);
     }
     select {
       background-color: #f0f0f0;
@@ -42,7 +50,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 2rem;
+      margin-bottom: 2rem;
     }
     th, td {
       border: 1px solid #ccc;
@@ -63,16 +71,17 @@
 </head>
 <body>
   <header>
-    <h1>Visualización de datos del Prototipo</h1>
+    <h1>🌱 Monitor Manglar</h1>
   </header>
   <main>
-    <button onclick="fetchData()">Actualizar datos</button>
+    <table id="dataTable"></table>
+    <button id="refreshBtn" onclick="fetchData()">Actualizar datos</button>
     <label for="variableSelect">Selecciona una variable:</label>
     <select id="variableSelect" onchange="updateChart()">
       <option disabled selected>Seleccione una variable</option>
     </select>
+    <button onclick="exportChart()">Descargar gráfico</button>
     <canvas id="chart" width="800" height="400"></canvas>
-    <table id="dataTable"></table>
   </main>
 
   <script>
@@ -81,6 +90,8 @@
     let chart;
 
     async function fetchData() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.classList.add('loading');
       try {
         const res = await fetch(CSV_URL);
         const text = await res.text();
@@ -94,6 +105,8 @@
       } catch (err) {
         alert('Error cargando los datos.');
         console.error(err);
+      } finally {
+        setTimeout(() => refreshBtn.classList.remove('loading'), 300);
       }
     }
 
@@ -148,14 +161,24 @@
             borderWidth: 2,
             fill: true,
             pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#4a90e2',
             tension: 0.3
           }]
         },
         options: {
           responsive: true,
+          animation: {
+            duration: 1000,
+            easing: 'easeOutQuart'
+          },
           plugins: {
             legend: { display: true },
-            tooltip: { mode: 'index', intersect: false }
+            tooltip: { mode: 'index', intersect: false },
+            zoom: {
+              pan: { enabled: true, mode: 'x' },
+              zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+            }
           },
           scales: {
             x: { title: { display: true, text: 'Tiempo' } },
@@ -163,6 +186,13 @@
           }
         }
       });
+    }
+
+    function exportChart() {
+      const link = document.createElement('a');
+      link.download = 'grafico.png';
+      link.href = document.getElementById('chart').toDataURL();
+      link.click();
     }
 
     // Cargar datos al inicio
