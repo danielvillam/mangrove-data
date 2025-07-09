@@ -129,7 +129,7 @@
     }
 
 function populateSelect(headers) {
-  const exclude = ['Fecha', 'Hora', 'Marca temporal'];
+  const exclude = ['fecha', 'hora', 'marca temporal'];
   const select = document.getElementById('variableSelect');
   select.innerHTML = '<option disabled selected>Seleccione una variable</option>';
   headers.filter(h => !exclude.includes(h.trim().toLowerCase())).forEach(h => {
@@ -182,7 +182,7 @@ function populateSelect(headers) {
             }
           },
           scales: {
-            x: { title: { display: true, text: 'Fecha' } },
+            x: { title: { display: true, text: 'fecha' } },
             y: { title: { display: true, text: variable } }
           }
         }
