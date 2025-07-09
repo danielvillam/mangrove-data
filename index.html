@@ -144,7 +144,7 @@ function populateSelect(headers) {
       const variable = document.getElementById('variableSelect').value;
       if (!variable || rawData.length === 0) return;
 
-      const labels = rawData.map(r => r.timestamp);
+      const labels = rawData.map(r => r.fecha);
       const values = rawData.map(r => parseFloat(r[variable]) || 0);
 
       if (chart) chart.destroy();
