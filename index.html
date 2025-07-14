@@ -14,17 +14,20 @@
       background: #f7f9fc;
       color: #333;
     }
+
     header {
       background-color: #4a90e2;
       padding: 1rem;
       text-align: center;
       color: white;
     }
+
     main {
       padding: 2rem;
       max-width: 1000px;
       margin: auto;
     }
+
     button, select {
       border: none;
       padding: 0.5rem 1rem;
@@ -33,33 +36,40 @@
       border-radius: 5px;
       cursor: pointer;
     }
+
     button {
       background-color: #4a90e2;
       color: white;
       transition: transform 0.2s, background-color 0.2s;
     }
+
     button.loading {
       background-color: #357ABD;
       transform: scale(0.95);
     }
+
     select {
       background-color: #f0f0f0;
       color: #333;
       border: 1px solid #ccc;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 2rem;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 0.5rem;
       text-align: left;
     }
+
     th {
       background-color: #e9f1fb;
     }
+
     canvas {
       margin-top: 2rem;
       background-color: white;
@@ -67,21 +77,61 @@
       border-radius: 5px;
       padding: 1rem;
     }
+
+    /* Tabs */
+    #tab-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      background-color: #f7f9fc;
+      padding: 1rem 0;
+      z-index: 10;
+      border-bottom: 1px solid #ccc;
+    }
+
+    #tab-buttons button {
+      background-color: #e0e0e0;
+      color: #333;
+    }
+
+    #tab-buttons .active-tab {
+      background-color: #4a90e2;
+      color: white;
+    }
+
+    .tab-content {
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>🌱 Monitor Manglar</h1>
   </header>
+
   <main>
-    <table id="dataTable"></table>
-    <button id="refreshBtn" onclick="fetchData()">Actualizar datos</button>
-    <label for="variableSelect">Selecciona una variable:</label>
-    <select id="variableSelect" onchange="updateChart()">
-      <option disabled selected>Seleccione una variable</option>
-    </select>
-    <button onclick="exportChart()">Descargar gráfico</button>
-    <canvas id="chart" width="800" height="400"></canvas>
+    <!-- Barra de pestañas -->
+    <div id="tab-buttons">
+      <button onclick="showTab('tabla')" id="btn-tabla" class="active-tab">📋 Tabla</button>
+      <button onclick="showTab('grafico')" id="btn-grafico">📈 Gráfico</button>
+    </div>
+
+    <!-- Contenido de pestañas -->
+    <div id="tab-tabla" class="tab-content">
+      <table id="dataTable"></table>
+      <button id="refreshBtn" onclick="fetchData()">Actualizar datos</button>
+    </div>
+
+    <div id="tab-grafico" class="tab-content" style="display: none;">
+      <label for="variableSelect">Selecciona una variable:</label>
+      <select id="variableSelect" onchange="updateChart()">
+        <option disabled selected>Seleccione una variable</option>
+      </select>
+      <button onclick="exportChart()">Descargar gráfico</button>
+      <canvas id="chart" width="800" height="400"></canvas>
+    </div>
   </main>
 
   <script>
@@ -106,7 +156,9 @@
         alert('Error cargando los datos.');
         console.error(err);
       } finally {
-        setTimeout(() => refreshBtn.classList.remove('loading'), 300);
+        setTimeout(() => {
+          refreshBtn.classList.remove('loading');
+        }, 300);
       }
     }
 
@@ -128,23 +180,25 @@
       });
     }
 
-function populateSelect(headers) {
-  const exclude = ['fecha', 'hora', 'marca temporal'];
-  const select = document.getElementById('variableSelect');
-  select.innerHTML = '<option disabled selected>Seleccione una variable</option>';
-  headers.filter(h => !exclude.includes(h.trim().toLowerCase())).forEach(h => {
-    const option = document.createElement('option');
-    option.value = h;
-    option.textContent = h;
-    select.appendChild(option);
-  });
-}
+    function populateSelect(headers) {
+      const exclude = ['fecha', 'hora', 'marca temporal'];
+      const select = document.getElementById('variableSelect');
+      select.innerHTML = '<option disabled selected>Seleccione una variable</option>';
+      headers.filter(h => !exclude.includes(h.trim().toLowerCase())).forEach(h => {
+        const option = document.createElement('option');
+        option.value = h;
+        option.textContent = h;
+        select.appendChild(option);
+      });
+    }
 
     function updateChart() {
       const variable = document.getElementById('variableSelect').value;
       if (!variable || rawData.length === 0) return;
 
-      const labels = rawData.map(r => r.Fecha);
+      // Buscar una columna de fecha válida
+      const fechaKey = Object.keys(rawData[0]).find(k => k.toLowerCase().includes('fecha')) || Object.keys(rawData[0])[0];
+      const labels = rawData.map(r => r[fechaKey]);
       const values = rawData.map(r => parseFloat(r[variable]) || 0);
 
       if (chart) chart.destroy();
@@ -196,7 +250,14 @@ function populateSelect(headers) {
       link.click();
     }
 
-    // Cargar datos al inicio
+    function showTab(tab) {
+      document.getElementById('tab-tabla').style.display = tab === 'tabla' ? 'block' : 'none';
+      document.getElementById('tab-grafico').style.display = tab === 'grafico' ? 'block' : 'none';
+
+      document.getElementById('btn-tabla').classList.toggle('active-tab', tab === 'tabla');
+      document.getElementById('btn-grafico').classList.toggle('active-tab', tab === 'grafico');
+    }
+
     fetchData();
   </script>
 </body>
